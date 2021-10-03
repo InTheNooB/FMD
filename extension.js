@@ -7,7 +7,7 @@ const fdiTerminal = vscode.window.createOutputChannel("FMD");
 const activeEditor = vscode.window.activeTextEditor;
 const highlightColors = {
     color: "#FFFFFF",
-    backgroundColor: "#CF6679",
+    backgroundColor: "#CF6678",
     overviewRulerColor: "#CF6679"
 }
 
