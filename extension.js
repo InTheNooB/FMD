@@ -7,7 +7,7 @@ const fdiTerminal = vscode.window.createOutputChannel("FMD");
 const activeEditor = vscode.window.activeTextEditor;
 const highlightColors = {
     color: "#FFFFFF",
-    backgroundColor: "#CF6678",
+    backgroundColor: "#CF6679",
     overviewRulerColor: "#CF6679"
 }
 
@@ -262,13 +262,14 @@ function activate(context) {
         };
 
 
-        activeEditor.setDecorations(vscode.window.createTextEditorDecorationType(Object.assign({}, highlightColors, {
+    /**    activeEditor.setDecorations(vscode.window.createTextEditorDecorationType(Object.assign({}, highlightColors, {
             overviewRulerLane: vscode.OverviewRulerLane.Right
         })), [decoration]);
 
         setTimeout(() => {
             activeEditor.setDecorations(vscode.window.createTextEditorDecorationType(null), [decoration]);
         }, 3000);
+        */
     });
 
 
