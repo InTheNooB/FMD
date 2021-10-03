@@ -1,0 +1,57 @@
+{
+    "name": "fmd",
+    "displayName": "FMD",
+    "description": "Find Missing Documentation",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.60.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onCommand:fmd.FMD-CurrentFile",
+        "onCommand:fmd.FMD-CurrentFolder",
+        "onCommand:fmd.FMD-SelectedFolderAndSubfolders",
+        "onCommand:fmd.FMD-CurrentWorkspace"
+    ],
+    "main": "./extension.js",
+    "contributes": {
+        "commands": [{
+                "command": "fmd.FMD-CurrentFile",
+                "title": "FMD CurrentFile"
+            },
+            {
+                "command": "fmd.FMD-CurrentFolder",
+                "title": "FMD CurrentFolder"
+            },
+            {
+                "command": "fmd.FMD-SelectedFolderAndSubfolders",
+                "title": "FMD SelectedFolderAndSubfolders"
+            },
+            {
+                "command": "fmd.FMD-CurrentWorkspace",
+                "title": "FMD CurrentWorkspace"
+            }
+        ]
+    },
+    "scripts": {
+        "lint": "eslint .",
+        "pretest": "npm run lint",
+        "test": "node ./test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.60.0",
+        "@types/glob": "^7.1.4",
+        "@types/mocha": "^9.0.0",
+        "@types/node": "14.x",
+        "eslint": "^7.32.0",
+        "glob": "^7.1.7",
+        "mocha": "^9.1.1",
+        "typescript": "^4.4.3",
+        "@vscode/test-electron": "^1.6.2"
+    },
+    "dependencies": {
+        "fs": "0.0.1-security"
+    }
+}
