@@ -1,10 +1,11 @@
 const vscode = require('vscode')
 const fs = require('fs')
-const { resolve, extname } = require('path')
+const { resolve, extname, dirname, basename } = require('path')
 const { readdir } = require('fs').promises
 const path = require('path')
 const fdiTerminal = vscode.window.createOutputChannel('FMD')
 const activeEditor = vscode.window.activeTextEditor
+const configuration = vscode.workspace.getConfiguration('fmd');
 const highlightColors = {
   color: '#FFFFFF',
   backgroundColor: '#CF6679',
@@ -26,7 +27,7 @@ let totalMissingDocumentation = {
   },
   class: {
     name: 'Class Documentation',
-    count: 0,
+      count: 0,
   },
 }
 
@@ -44,15 +45,27 @@ function activate(context) {
     totalMissingDocumentation.function.count++
   }
 
-    /**
+  /**
    * Appends a line to the console displaying information about a missing class documentation
    * @param {string} fileName
    * @param {number} i
    */
-     function displayMissingClassDoc(fileName, i) {
-        fdiTerminal.appendLine(`Missing {Class} Doc         : ${fileName}:${i}`)
-        totalMissingDocumentation.class.count++
-      }
+  function displayMissingClassDoc(fileName, i) {
+    fdiTerminal.appendLine(`Missing {Class} Doc         : ${fileName}:${i}`)
+    totalMissingDocumentation.class.count++
+  }
+
+
+  /**
+   * Appends a line to the console displaying a folder that has been ignored
+   * @param {array} folderList
+   */
+  function displayIgnoredFolders(folderList) {
+    folderList.forEach(f => {
+      fdiTerminal.appendLine(`Ignored folder              : ${f}`)
+    });
+  }
+
   /**
    * Appends a line to the console displaying information about a missing information in the header
    * @param {string} fileName
@@ -60,7 +73,7 @@ function activate(context) {
    */
   function displayMissingHeaderInformationDoc(fileName, information) {
     fdiTerminal.appendLine(
-        `Missing {Header} Info       : ${fileName}:1 => ${information.join(', ')}`
+      `Missing {Header} Info       : ${fileName}:1 => ${information.join(', ')}`
     )
     totalMissingDocumentation.headerInfo.count++
   }
@@ -99,7 +112,8 @@ function activate(context) {
     const dirents = await readdir(dir, { withFileTypes: true })
     for (const dirent of dirents) {
       const res = resolve(dir, dirent.name)
-      if (dirent.isDirectory()) {
+      if (dirent.isDirectory() && 
+      !configuration.get('ignoredFolders').includes(basename(dirname(res)))){
         yield* getFiles(res)
       } else {
         yield res
@@ -121,8 +135,7 @@ function activate(context) {
     let headerWasFound = false
     let lastNotEmptyLine = -1
 
-    let headerInformation = [
-      {
+    let headerInformation = [{
         name: '@author',
         found: false,
       },
@@ -158,8 +171,7 @@ function activate(context) {
             info.found = true
           }
         })
-      } else if (
-        !headerWasFound &&
+      } else if (!headerWasFound &&
         new RegExp(startHeaderRegex).test(line) &&
         lastNotEmptyLine == -1
       ) {
@@ -186,26 +198,24 @@ function activate(context) {
    */
   function checkPythonFile(fileName, fileContent) {
     let lines = fileContent.split('\n')
-    let testDef =  /[^\S\r\n]*def{1}\s+\S+\s*\(\S*\)\s*:/gi;
-    let testClass =  /\s*class{1}\s+\S+\s*\(?\S*\)?\s*:/gi;
+    let testDef = /[^\S\r\n]*def{1}\s+\S+\s*\(\S*\)\s*:/gi;
+    let testClass = /\s*class{1}\s+\S+\s*\(?\S*\)?\s*:/gi;
     let testHeader = /\s*"""/gi;
     let testComments = /^\s*"""/gi;
-    lines.forEach((line,i)=>{
-        if(i == 0 && !RegExp(testHeader).test(line)){
-            displayMissingHeaderDoc(fileName);
-        }
-        else if(!RegExp(testComments).test(lines[i+1])){
-            if(RegExp(testDef).test(line)){
-                displayMissingFunctionDoc(fileName,(i+2));
-            }
-            else if(RegExp(testClass).test(line)){
-                displayMissingClassDoc(fileName,(i+2));
-            }
-            
+    lines.forEach((line, i) => {
+      if (i == 0 && !RegExp(testHeader).test(line)) {
+        displayMissingHeaderDoc(fileName);
+      } else if (!RegExp(testComments).test(lines[i + 1])) {
+        if (RegExp(testDef).test(line)) {
+          displayMissingFunctionDoc(fileName, (i + 2));
+        } else if (RegExp(testClass).test(line)) {
+          displayMissingClassDoc(fileName, (i + 2));
         }
 
+      }
+
     });
-    }
+  }
 
 
   /**
@@ -222,8 +232,7 @@ function activate(context) {
     let headerWasFound = false
     let lastNotEmptyLine = -1
 
-    let headerInformation = [
-      {
+    let headerInformation = [{
         name: '@author',
         found: false,
       },
@@ -258,8 +267,7 @@ function activate(context) {
             info.found = true
           }
         })
-      } else if (
-        !headerWasFound &&
+      } else if (!headerWasFound &&
         new RegExp(startHeaderRegex).test(line) &&
         lines[lastNotEmptyLine].includes('<?php')
       ) {
@@ -299,7 +307,7 @@ function activate(context) {
 
   let FMDCurrentFile = vscode.commands.registerCommand(
     'fmd.FMD-CurrentFile',
-    function () {
+    function() {
       fdiTerminal.clear()
       resetTotalMissingDocumentation()
       try {
@@ -332,7 +340,7 @@ function activate(context) {
 
   let FMDCurrentFolder = vscode.commands.registerCommand(
     'fmd.FMD-CurrentFolder',
-    function () {
+    function() {
       fdiTerminal.clear()
       resetTotalMissingDocumentation()
       try {
@@ -359,7 +367,7 @@ function activate(context) {
 
   let FMDSelectedFolderAndSubfolders = vscode.commands.registerCommand(
     'fmd.FMD-SelectedFolderAndSubfolders',
-    function () {
+    function() {
       vscode.window
         .showOpenDialog({
           canSelectMany: false,
@@ -371,8 +379,7 @@ function activate(context) {
           if (fileUri && fileUri[0]) {
             fdiTerminal.clear()
             resetTotalMissingDocumentation()
-            vscode.window.withProgress(
-              {
+            vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
                 title: 'FMD-CurrentWorkspace',
               },
@@ -398,11 +405,10 @@ function activate(context) {
 
   let FMDCurrentWorkspace = vscode.commands.registerCommand(
     'fmd.FMD-CurrentWorkspace',
-    function () {
+    function() {
       fdiTerminal.clear()
       resetTotalMissingDocumentation()
-      vscode.window.withProgress(
-        {
+      vscode.window.withProgress({
           location: vscode.ProgressLocation.Notification,
           title: 'FMD-CurrentWorkspace',
         },
@@ -428,19 +434,22 @@ function activate(context) {
    * Recusively check folder and subfolders to find missing doc
    */
   function checkFolderRecursively(path, progress, resolve) {
-    let nbrFiles = 0
-    ;(async () => {
+    let nbrFiles = 0;
+    (async() => {
       for await (const f of getFiles(path + '/')) {
         nbrFiles++
       }
       return
     })().then(() => {
-      let nbrToInc = 100 / nbrFiles
-      ;(async () => {
+      let nbrToInc = 100 / nbrFiles;
+      (async() => {
         for await (const f of getFiles(path + '/')) {
-          let content = fs.readFileSync(f, 'utf-8')
-          checkFile(f, content)
-          progress.report({ increment: nbrToInc, message: 'Running...' })
+          if (!configuration.get('ignoredFolders').includes(basename(dirname(f)))) {
+            let content = fs.readFileSync(f, 'utf-8')
+            checkFile(f, content)
+            progress.report({ increment: nbrToInc, message: 'Running...' })
+          } else {
+          }
         }
       })().then(() => {
         resolve()

@@ -2,6 +2,7 @@
     "name": "fmd",
     "displayName": "FMD",
     "publisher": "LionelDing",
+    "icon": "icon.png",
     "description": "Find Missing Documentation",
     "version": "0.0.1",
     "engines": {
@@ -18,8 +19,7 @@
     ],
     "main": "./extension.js",
     "contributes": {
-        "commands": [
-            {
+        "commands": [{
                 "command": "fmd.FMD-CurrentFile",
                 "title": "FMD CurrentFile"
             },
@@ -35,7 +35,17 @@
                 "command": "fmd.FMD-CurrentWorkspace",
                 "title": "FMD CurrentWorkspace"
             }
-        ]
+        ],
+        "configuration": {
+            "title": "FMD",
+            "properties": {
+                "fmd.ignoredFolders": {
+                    "type": "array",
+                    "default": ["node_modules", "plugins", "plugin", "lib"],
+                    "description": "List of folders name that will be ignored in the process."
+                }
+            }
+        }
     },
     "scripts": {
         "lint": "eslint .",
