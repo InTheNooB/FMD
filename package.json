@@ -3,6 +3,7 @@
     "displayName": "FMD",
     "publisher": "LionelDing",
     "icon": "icon.png",
+    "repository": "https://github.com/InTheNooB/FMD",
     "description": "Find Missing Documentation",
     "version": "0.0.4",
     "engines": {
