@@ -4,7 +4,7 @@
     "publisher": "LionelDing",
     "icon": "icon.png",
     "description": "Find Missing Documentation",
-    "version": "0.0.1",
+    "version": "0.0.4",
     "engines": {
         "vscode": "^1.60.0"
     },
@@ -41,7 +41,7 @@
             "properties": {
                 "fmd.ignoredFolders": {
                     "type": "array",
-                    "default": ["node_modules", "plugins", "plugin", "lib"],
+                    "default": ["node_modules", "plugins", "plugin", "lib", "libs"],
                     "description": "List of folders name that will be ignored in the process."
                 }
             }
