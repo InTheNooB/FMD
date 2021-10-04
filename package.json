@@ -1,6 +1,7 @@
 {
     "name": "fmd",
     "displayName": "FMD",
+    "publisher": "LionelDing",
     "description": "Find Missing Documentation",
     "version": "0.0.1",
     "engines": {
@@ -17,7 +18,8 @@
     ],
     "main": "./extension.js",
     "contributes": {
-        "commands": [{
+        "commands": [
+            {
                 "command": "fmd.FMD-CurrentFile",
                 "title": "FMD CurrentFile"
             },
@@ -41,17 +43,17 @@
         "test": "node ./test/runTest.js"
     },
     "devDependencies": {
-        "@types/vscode": "^1.60.0",
         "@types/glob": "^7.1.4",
         "@types/mocha": "^9.0.0",
         "@types/node": "14.x",
+        "@types/vscode": "^1.60.0",
+        "@vscode/test-electron": "^1.6.2",
         "eslint": "^7.32.0",
         "glob": "^7.1.7",
         "mocha": "^9.1.1",
-        "typescript": "^4.4.3",
-        "@vscode/test-electron": "^1.6.2"
+        "typescript": "^4.4.3"
     },
     "dependencies": {
-        "fs": "0.0.1-security"
+        "fs": "^0.0.1-security"
     }
 }
