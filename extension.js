@@ -2,9 +2,7 @@ const vscode = require('vscode')
 const fs = require('fs')
 const { resolve, extname, dirname, basename } = require('path')
 const { readdir } = require('fs').promises
-const path = require('path')
 const fdiTerminal = vscode.window.createOutputChannel('FMD')
-const activeEditor = vscode.window.activeTextEditor
 const configuration = vscode.workspace.getConfiguration('fmd');
 const highlightColors = {
     color: '#FFFFFF',
@@ -14,19 +12,19 @@ const highlightColors = {
 
 let totalMissingDocumentation = {
     header: {
-        name: 'File Header',
+        name: '📄 {File Header}',
         count: 0,
     },
     headerInfo: {
-        name: 'File Header Information',
+        name: '📑 {File Header Information}',
         count: 0,
     },
     function: {
-        name: 'Function Documentation',
+        name: '📏 {Function Documentation}',
         count: 0,
     },
     class: {
-        name: 'Class Documentation',
+        name: '📝 {Class Documentation}',
             count: 0,
     },
 }
@@ -56,15 +54,6 @@ function activate(context) {
     }
 
 
-    /**
-     * Appends a line to the console displaying a folder that has been ignored
-     * @param {array} folderList
-     */
-    function displayIgnoredFolders(folderList) {
-        folderList.forEach(f => {
-            fdiTerminal.appendLine(`Ignored folder              : ${f}`)
-        });
-    }
 
     /**
      * Appends a line to the console displaying information about a missing information in the header
@@ -129,11 +118,18 @@ function activate(context) {
     function checkJSFile(fileName, fileContent) {
         let lines = fileContent.split('\n')
         let fRegex = /^\s*(public|private){0,1}\s*(function)\s+.*\s*\(.*\)/gi
+        let startClassRegex = /^(\S*class\s+.+){0,1}\s*{\s*$/gim
+        let functionInClassRegex = /^\s*.+\S+(.*)\s*{$/gim
         let startHeaderRegex = /\/\*\*/gi
         let endHeaderRegex = /\ \*\//gi
+        let endOfCommentRegex = /\*\/|\/\//gi
+
         let currentlyReadingHeader = false
         let headerWasFound = false
         let lastNotEmptyLine = -1
+
+        let currentlyReadingClass = false;
+        let currentBracketLevel = 0;
 
         let headerInformation = [{
                 name: '@author',
@@ -150,6 +146,7 @@ function activate(context) {
             if (line.length == 1) {
                 return
             }
+
             if (currentlyReadingHeader && new RegExp(endHeaderRegex).test(line)) {
                 // Leaving the header
                 headerWasFound = true
@@ -171,16 +168,36 @@ function activate(context) {
                         info.found = true
                     }
                 })
-            } else if (!headerWasFound &&
-                new RegExp(startHeaderRegex).test(line) &&
-                lastNotEmptyLine == -1
-            ) {
+            } else if (!headerWasFound && new RegExp(startHeaderRegex).test(line) && lastNotEmptyLine == -1) {
                 // Entering the header
                 currentlyReadingHeader = true
+            } else if (currentlyReadingClass) {
+                // Check the bracket's level
+                let numberOfOpeningBrackets = (line.match(/{/g) || []).length;
+                let numberOfClosingBrackets = (line.match(/}/g) || []).length;
+                let bracketsModification = numberOfOpeningBrackets - numberOfClosingBrackets;
+                currentBracketLevel += bracketsModification;
+                if (currentBracketLevel == 0) {
+                    // This means we are out of the class
+                    currentlyReadingClass = false;
+                } else {
+                    // Still in the class
+                    if (new RegExp(functionInClassRegex).test(line)) {
+                        if (!new RegExp(endOfCommentRegex).test(lines[lastNotEmptyLine])) {
+                            displayMissingFunctionDoc(fileName, i + 1)
+                        }
+                    }
+                }
+
             } else if (line.includes('function') && new RegExp(fRegex).test(line)) {
-                let regex = /\*\/|\/\//gi
-                if (!new RegExp(regex).test(lines[lastNotEmptyLine])) {
+                if (!new RegExp(endOfCommentRegex).test(lines[lastNotEmptyLine])) {
                     displayMissingFunctionDoc(fileName, i + 1)
+                }
+            } else if (line.includes('class') && new RegExp(startClassRegex).test(line)) {
+                if (!new RegExp(endOfCommentRegex).test(lines[lastNotEmptyLine])) {
+                    displayMissingClassDoc(fileName, i + 1)
+                    currentlyReadingClass = true;
+                    currentBracketLevel = 1;
                 }
             }
 
@@ -312,8 +329,8 @@ function activate(context) {
             resetTotalMissingDocumentation()
             try {
                 // Get information
-                let fileContent = activeEditor.document.getText()
-                let fileName = activeEditor.document.fileName
+                let fileContent = vscode.window.activeTextEditor.document.getText()
+                let fileName = vscode.window.activeTextEditor.document.uri.fsPath;
                 checkFile(fileName, fileContent)
                 displayTotalMissingDocumentation()
                 fdiTerminal.show()
@@ -321,18 +338,18 @@ function activate(context) {
                 vscode.window.showInformationMessage('You need to open a file first')
             }
 
-            var startPos = activeEditor.document.positionAt(10)
-            var endPos = activeEditor.document.positionAt(200)
+            var startPos = vscode.window.activeTextEditor.document.positionAt(10)
+            var endPos = vscode.window.activeTextEditor.document.positionAt(200)
             var decoration = {
                 range: new vscode.Range(startPos, endPos),
             }
 
-            /**    activeEditor.setDecorations(vscode.window.createTextEditorDecorationType(Object.assign({}, highlightColors, {
+            /**    vscode.window.activeTextEditor.setDecorations(vscode.window.createTextEditorDecorationType(Object.assign({}, highlightColors, {
                   overviewRulerLane: vscode.OverviewRulerLane.Right
               })), [decoration]);
 
               setTimeout(() => {
-                  activeEditor.setDecorations(vscode.window.createTextEditorDecorationType(null), [decoration]);
+                  vscode.window.activeTextEditor.setDecorations(vscode.window.createTextEditorDecorationType(null), [decoration]);
               }, 3000);
               */
         },
@@ -345,7 +362,7 @@ function activate(context) {
             resetTotalMissingDocumentation()
             try {
                 // Get information
-                let fileName = activeEditor.document.fileName
+                let fileName = vscode.window.activeTextEditor.document.fileName
                 let folderName = fileName.split('\\').slice(0, -1).join('\\')
                 let files = fs.readdirSync(folderName)
                 files.forEach((file) => {
